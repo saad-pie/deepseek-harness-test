@@ -27,9 +27,10 @@ jobs:
         env:
           NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
         run: |
-          # 1. Download and install official ngrok CLI
-          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.repo | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install -y ngrok
+          # 1. Download official ngrok binary directly
+          curl -sSL https://bin.equinox.io/c/bNyA1mQVY4c/ngrok-v3-stable-linux-amd64.tgz -o ngrok.tgz
+          sudo tar -xvzf ngrok.tgz -C /usr/local/bin
+          rm ngrok.tgz
 
           # 2. Authenticate ngrok with your token
           ngrok config add-authtoken "$NGROK_AUTHTOKEN"
@@ -40,7 +41,7 @@ jobs:
           echo "Waiting for ngrok tunnel to initialize..."
           sleep 5
 
-          # 4. Extract generated https URL from ngrok API
+          # 4. Extract generated https URL from ngrok local API
           URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
 
           echo "=================================================================="
@@ -52,6 +53,6 @@ jobs:
           echo "### 🚀 DeepSeek Harness Web UI" >> $GITHUB_STEP_SUMMARY
           echo "[Click here to open DeepSeek Harness]($URL)" >> $GITHUB_STEP_SUMMARY
 
-          # Keep runner alive to preserve the active session/tunnel
+          # Keep runner alive to preserve active session/tunnel
           tail -f ngrok.log
           
