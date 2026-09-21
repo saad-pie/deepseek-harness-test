@@ -23,25 +23,15 @@ jobs:
           dsh web --port 3080 --no-open &
           sleep 5
 
-      - name: 🚀 Install & Launch ngrok Tunnel
-        env:
-          NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
+      - name: 🚀 Setup & Launch ngrok Tunnel
+        uses: ngrok/ngrok-action@v2
+        with:
+          authtoken: ${{ secrets.NGROK_AUTHTOKEN }}
+          port: 3080
+
+      - name: 🌐 Output Access Link
         run: |
-          # 1. Download official ngrok binary from cdn.ngrok.com
-          curl -sSL https://bin.ngrok-agent.com/ec2/linux-amd64/ngrok.tgz -o ngrok.tgz
-          sudo tar -xvzf ngrok.tgz -C /usr/local/bin
-          rm ngrok.tgz
-
-          # 2. Authenticate ngrok with your token
-          ngrok config add-authtoken "$NGROK_AUTHTOKEN"
-
-          # 3. Launch tunnel in background and log to file
-          ngrok http 3080 --log=stdout > ngrok.log 2>&1 &
-          
-          echo "Waiting for ngrok tunnel to initialize..."
-          sleep 5
-
-          # 4. Extract generated https URL from ngrok local API
+          # Fetch the public URL from local ngrok API
           URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
 
           echo "=================================================================="
@@ -49,10 +39,10 @@ jobs:
           echo "👉 $URL"
           echo "=================================================================="
 
-          # 5. Output directly to the GitHub Actions Job Summary UI
+          # Output directly to the GitHub Actions Job Summary UI
           echo "### 🚀 DeepSeek Harness Web UI" >> $GITHUB_STEP_SUMMARY
           echo "[Click here to open DeepSeek Harness]($URL)" >> $GITHUB_STEP_SUMMARY
 
-          # Keep runner alive to preserve active session/tunnel
-          tail -f ngrok.log
+          # Keep runner alive to preserve active tunnel session
+          sleep 21600
           
