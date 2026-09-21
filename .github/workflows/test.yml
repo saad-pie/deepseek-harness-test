@@ -1,12 +1,16 @@
 name: Run Ephemeral DSH Server
 
 on:
-  workflow_dispatch: # On-demand manual trigger
+  workflow_dispatch: # Trigger manually from Actions tab
 
 jobs:
   run-dsh:
     runs-on: ubuntu-latest
+
     steps:
+      - name: 📁 Checkout Repository
+        uses: actions/checkout@v4
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -15,13 +19,21 @@ jobs:
       - name: ⚡ Install & Start DeepSeek Harness
         run: |
           npm install -g @deepseek-ai/dsh@latest
-          # Run in background
-          dsh --port 3080 &
+          # Start DSH server in the background on port 3080
+          dsh web --port 3080 --no-open &
+          # Give dsh server a few seconds to initialize
+          sleep 5
 
       - name: 🌐 Expose via Cloudflare Tunnel
         run: |
-          # Downloads cloudflared and opens a public HTTPS tunnel to port 3080
+          # Install cloudflared binary
           wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared-linux-amd64.deb
-          cloudflared tunnel --url http://localhost:3080
+
+          echo "------------------------------------------------------------------"
+          echo "🚀 Starting Cloudflare Tunnel... Watch for the URL below:"
+          echo "------------------------------------------------------------------"
+
+          # Redirect stderr to stdout and unbuffer output so the trycloudflare link flushes immediately to logs
+          cloudflared tunnel --url http://localhost:3080 2>&1 | stdbuf -oL cat
           
