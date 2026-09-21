@@ -11,10 +11,10 @@ jobs:
       - name: 📁 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js
+      - name: 🟢 Setup Node.js (v22 required by dsh)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: ⚡ Install & Start DeepSeek Harness
         run: |
@@ -27,8 +27,8 @@ jobs:
         env:
           NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
         run: |
-          # 1. Download official ngrok binary directly
-          curl -sSL https://bin.equinox.io/c/bNyA1mQVY4c/ngrok-v3-stable-linux-amd64.tgz -o ngrok.tgz
+          # 1. Download official ngrok binary from cdn.ngrok.com
+          curl -sSL https://bin.ngrok-agent.com/ec2/linux-amd64/ngrok.tgz -o ngrok.tgz
           sudo tar -xvzf ngrok.tgz -C /usr/local/bin
           rm ngrok.tgz
 
