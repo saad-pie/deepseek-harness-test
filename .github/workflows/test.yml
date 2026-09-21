@@ -1,7 +1,7 @@
-name: Run Ephemeral DSH Server
+name: Run Ephemeral DSH Server (ngrok)
 
 on:
-  workflow_dispatch: # Manual trigger from Actions tab
+  workflow_dispatch: # Trigger manually from Actions tab
 
 jobs:
   run-dsh:
@@ -23,31 +23,35 @@ jobs:
           dsh web --port 3080 --no-open &
           sleep 5
 
-      - name: 🌐 Expose via Cloudflare Tunnel
+      - name: 🚀 Install & Launch ngrok Tunnel
+        env:
+          NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
         run: |
-          # Download and install cloudflared binary
-          wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared-linux-amd64.deb
+          # 1. Download and install official ngrok CLI
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.repo | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install -y ngrok
 
-          # Start cloudflared and stream logs into tunnel.log in background
-          cloudflared tunnel --url http://localhost:3080 > tunnel.log 2>&1 &
+          # 2. Authenticate ngrok with your token
+          ngrok config add-authtoken "$NGROK_AUTHTOKEN"
 
-          # Wait for the trycloudflare URL to be generated
-          echo "Waiting for Cloudflare URL..."
-          sleep 8
+          # 3. Launch tunnel in background and log to file
+          ngrok http 3080 --log=stdout > ngrok.log 2>&1 &
+          
+          echo "Waiting for ngrok tunnel to initialize..."
+          sleep 5
 
-          # Extract and print the exact URL
-          URL=$(grep -o 'https://.*\.trycloudflare\.com' tunnel.log | head -n 1)
+          # 4. Extract generated https URL from ngrok API
+          URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
 
           echo "=================================================================="
           echo "🚀 YOUR DEEPSEEK HARNESS URL IS:"
           echo "👉 $URL"
           echo "=================================================================="
 
-          # Also write it to the GitHub Step Summary UI tab
-          echo "### 🚀 DeepSeek Harness Web URL" >> $GITHUB_STEP_SUMMARY
+          # 5. Output directly to the GitHub Actions Job Summary UI
+          echo "### 🚀 DeepSeek Harness Web UI" >> $GITHUB_STEP_SUMMARY
           echo "[Click here to open DeepSeek Harness]($URL)" >> $GITHUB_STEP_SUMMARY
 
-          # Keep the process alive so the tunnel doesn't close immediately
-          tail -f tunnel.log
+          # Keep runner alive to preserve the active session/tunnel
+          tail -f ngrok.log
           
