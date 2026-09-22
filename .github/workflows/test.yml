@@ -16,41 +16,30 @@ jobs:
         with:
           node-version: 22
 
-      - name: ⚡ Prepare Workspace & Start DeepSeek Harness
+      - name: ⚡ Install & Start DeepSeek Harness
         run: |
-          npm install -g @ngrok/ngrok@latest
+          npm install -g @deepseek-ai/dsh@latest @ngrok/ngrok@latest
 
-          # Create workspace directory for dsh
+          # Create and enter dedicated workspace folder to fix 403 permission errors
           mkdir -p /home/runner/work/workspace
+          cd /home/runner/work/workspace
 
-          # Start DSH in background with explicit workspace path
-          npx --yes @deepseek-ai/dsh@latest web --port 3080 --workspace /home/runner/work/workspace --no-open > dsh.log 2>&1 &
-
-          echo "Waiting for DeepSeek Harness to bind to port 3080 (up to 90s)..."
-          for i in {1..45}; do
-            if nc -z 127.0.0.1 3080; then
-              echo "✅ DeepSeek Harness is up and listening on port 3080!"
-              break
-            fi
-            echo "Waiting... ($i/45)"
-            sleep 2
-          done
-
-          # Output dsh startup log snippet for verification
-          cat dsh.log
+          # Start DSH server in the background on port 3080
+          dsh web --port 3080 --no-open &
+          sleep 5
 
       - name: 🚀 Launch ngrok Tunnel
         env:
           NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
         run: |
-          # 1. Authenticate ngrok
+          # 1. Authenticate ngrok using the npm-installed binary
           npx ngrok config add-authtoken "$NGROK_AUTHTOKEN"
 
-          # 2. Launch tunnel pointing to 127.0.0.1:3080 using a dynamic ephemeral endpoint
-          npx ngrok http 127.0.0.1:3080 --log=stdout > ngrok.log 2>&1 &
-
+          # 2. Launch tunnel in background
+          npx ngrok http 3080 --log=stdout > ngrok.log 2>&1 &
+          
           echo "Waiting for ngrok tunnel to initialize..."
-          sleep 6
+          sleep 5
 
           # 3. Extract generated https URL from ngrok local API
           URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
