@@ -18,15 +18,15 @@ jobs:
 
       - name: ⚡ Install & Start DeepSeek Harness
         run: |
-          npm install -g @deepseek-ai/dsh@latest @ngrok/ngrok@latest
+          npm install -g @ngrok/ngrok@latest
 
-          # 1. Create workspace directory for file browsing
+          # 1. Create workspace directory
           mkdir -p /home/runner/work/workspace
           cd /home/runner/work/workspace
 
-          # 2. Start DSH on default 127.0.0.1 interface
-          dsh web --port 3080 --no-open &
-          sleep 5
+          # 2. Launch DSH via npx so all plugins load cleanly without global resolution failures
+          npx -y @deepseek-ai/dsh@latest web --port 3080 --no-open &
+          sleep 8
 
       - name: 🚀 Launch ngrok Tunnel
         env:
