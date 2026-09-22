@@ -16,17 +16,19 @@ jobs:
         with:
           node-version: 22
 
-      - name: ⚡ Install & Start DeepSeek Harness
+      - name: ⚡ Install Dependencies & Launch DeepSeek Harness
         run: |
-          npm install -g @deepseek-ai/dsh@latest @ngrok/ngrok@latest
+          npm install -g @ngrok/ngrok@latest
 
-          # Create and enter dedicated workspace folder to fix 403 permission errors
+          # Create and switch into workspace directory to allow full workspace access
           mkdir -p /home/runner/work/workspace
           cd /home/runner/work/workspace
 
-          # Start DSH server in the background on port 3080
-          dsh web --port 3080 --no-open &
-          sleep 5
+          # Launch DSH via npx (resolves internal plugin tree cleanly)
+          npx --yes @deepseek-ai/dsh@latest web --port 3080 --no-open &
+
+          echo "Waiting for DeepSeek Harness to start..."
+          sleep 8
 
       - name: 🚀 Launch ngrok Tunnel
         env:
@@ -35,7 +37,7 @@ jobs:
           # 1. Authenticate ngrok using the npm-installed binary
           npx ngrok config add-authtoken "$NGROK_AUTHTOKEN"
 
-          # 2. Launch tunnel in background
+          # 2. Launch tunnel pointing to port 3080
           npx ngrok http 3080 --log=stdout > ngrok.log 2>&1 &
           
           echo "Waiting for ngrok tunnel to initialize..."
