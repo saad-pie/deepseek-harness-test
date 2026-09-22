@@ -26,13 +26,13 @@ jobs:
           # Start DSH in background with explicit workspace path
           npx --yes @deepseek-ai/dsh@latest web --port 3080 --workspace /home/runner/work/workspace --no-open > dsh.log 2>&1 &
 
-          echo "Waiting for DeepSeek Harness to bind to port 3080..."
-          for i in {1..15}; do
+          echo "Waiting for DeepSeek Harness to bind to port 3080 (up to 90s)..."
+          for i in {1..45}; do
             if nc -z 127.0.0.1 3080; then
               echo "✅ DeepSeek Harness is up and listening on port 3080!"
               break
             fi
-            echo "Waiting... ($i/15)"
+            echo "Waiting... ($i/45)"
             sleep 2
           done
 
@@ -46,11 +46,11 @@ jobs:
           # 1. Authenticate ngrok
           npx ngrok config add-authtoken "$NGROK_AUTHTOKEN"
 
-          # 2. Launch tunnel pointing to 127.0.0.1:3080
+          # 2. Launch tunnel pointing to 127.0.0.1:3080 using a dynamic ephemeral endpoint
           npx ngrok http 127.0.0.1:3080 --log=stdout > ngrok.log 2>&1 &
 
           echo "Waiting for ngrok tunnel to initialize..."
-          sleep 5
+          sleep 6
 
           # 3. Extract generated https URL from ngrok local API
           URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
