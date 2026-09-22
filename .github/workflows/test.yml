@@ -19,8 +19,13 @@ jobs:
       - name: ⚡ Install & Start DeepSeek Harness
         run: |
           npm install -g @deepseek-ai/dsh@latest @ngrok/ngrok@latest
-          # Start DSH server in the background on port 3080
-          dsh web --port 3080 --no-open &
+
+          # 1. Create dedicated workspace folder to prevent HTTP 403 permission errors
+          mkdir -p /home/runner/work/workspace
+          cd /home/runner/work/workspace
+
+          # 2. Start DSH server bound to all interfaces inside workspace
+          dsh web --port 3080 --host 0.0.0.0 --no-open &
           sleep 5
 
       - name: 🚀 Launch ngrok Tunnel
