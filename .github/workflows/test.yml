@@ -20,12 +20,12 @@ jobs:
         run: |
           npm install -g @deepseek-ai/dsh@latest @ngrok/ngrok@latest
 
-          # 1. Create dedicated workspace folder to prevent HTTP 403 permission errors
+          # 1. Create workspace directory for file browsing
           mkdir -p /home/runner/work/workspace
           cd /home/runner/work/workspace
 
-          # 2. Start DSH server bound to all interfaces inside workspace
-          dsh web --port 3080 --host 0.0.0.0 --no-open &
+          # 2. Start DSH on default 127.0.0.1 interface
+          dsh web --port 3080 --no-open &
           sleep 5
 
       - name: 🚀 Launch ngrok Tunnel
@@ -35,8 +35,8 @@ jobs:
           # 1. Authenticate ngrok using the npm-installed binary
           npx ngrok config add-authtoken "$NGROK_AUTHTOKEN"
 
-          # 2. Launch tunnel in background
-          npx ngrok http 3080 --log=stdout > ngrok.log 2>&1 &
+          # 2. Launch tunnel pointing to 127.0.0.1:3080
+          npx ngrok http 127.0.0.1:3080 --log=stdout > ngrok.log 2>&1 &
           
           echo "Waiting for ngrok tunnel to initialize..."
           sleep 5
