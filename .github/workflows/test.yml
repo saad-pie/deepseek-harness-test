@@ -16,29 +16,40 @@ jobs:
         with:
           node-version: 22
 
-      - name: ⚡ Install Dependencies & Launch DeepSeek Harness
+      - name: ⚡ Prepare Workspace & Start DeepSeek Harness
         run: |
-          npm install -g @ngrok/ngrok@latest
+          npm install -g @deepseek-ai/dsh@latest @ngrok/ngrok@latest
 
-          # Create and switch into workspace directory to allow full workspace access
+          # Create workspace and copy repository files over
           mkdir -p /home/runner/work/workspace
+          cp -r . /home/runner/work/workspace/
+
+          # Navigate to workspace and launch DSH
           cd /home/runner/work/workspace
+          nohup dsh web --port 3080 --host 127.0.0.1 --workspace /home/runner/work/workspace --no-open > dsh.log 2>&1 &
 
-          # Launch DSH via npx (resolves internal plugin tree cleanly)
-          npx --yes @deepseek-ai/dsh@latest web --port 3080 --no-open &
+          echo "Waiting for DeepSeek Harness server to initialize..."
+          for i in {1..15}; do
+            if nc -z 127.0.0.1 3080; then
+              echo "✅ DeepSeek Harness is up and running on port 3080!"
+              break
+            fi
+            echo "Waiting... ($i/15)"
+            sleep 2
+          done
 
-          echo "Waiting for DeepSeek Harness to start..."
-          sleep 8
+          # Output log file to verify startup
+          cat dsh.log
 
       - name: 🚀 Launch ngrok Tunnel
         env:
           NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
         run: |
-          # 1. Authenticate ngrok using the npm-installed binary
-          npx ngrok config add-authtoken "$NGROK_AUTHTOKEN"
+          # 1. Authenticate ngrok using the installed binary
+          ngrok config add-authtoken "$NGROK_AUTHTOKEN"
 
-          # 2. Launch tunnel pointing to port 3080
-          npx ngrok http 3080 --log=stdout > ngrok.log 2>&1 &
+          # 2. Launch tunnel to local port 3080
+          ngrok http 127.0.0.1:3080 --log=stdout > ngrok.log 2>&1 &
           
           echo "Waiting for ngrok tunnel to initialize..."
           sleep 5
